@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The NFC Test</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <script type="module">
+        /**
+         * The log function to printout text to the page.
+         * @param {string} msg
+         */
+        function log(msg) {
+            const elOut = document.getElementById('output');
+            elOut.innerHTML += msg + '\n';
+        }
+
+        /**
+         * The button click handler to request permissions and start the NFC scanning.
+         * @return {Promise<void>}
+         */
+        async function handleClick() {
+            try {
+                if ('NDEFReader' in window) {
+                    log(`Web NFC is supported by this browser.`);
+                    const ndef = new window.NDEFReader();
+
+
+                    ndef.addEventListener('readingerror', () => {
+                        log('NFC reading error. Please try again.');
+                    });
+
+                    ndef.addEventListener('reading', event => {
+                        log('New event: ' + JSON.stringify(event, null, 2));
+                        const {serialNumber} = event;
+                        log(`NFC Tag read: ${serialNumber}`);
+
+                        const decoder = new TextDecoder();
+                        for (const record of event.message.records) {
+                            log('Record: ' + JSON.stringify(record, null, 2));
+                            switch (record.recordType) {
+                                case 'text':
+                                    const text = decoder.decode(record.data);
+                                    log(`Text: ${text}`);
+                                    break;
+                                case 'url':
+                                    const url = decoder.decode(record.data);
+                                    log(`\nURL: ${url}`);
+                                    break;
+                                // handle other types as needed
+                                default:
+                                    log(`Unknown record type: ${record.recordType}`);
+                            }
+                        }
+                    });
+                    await ndef.scan();
+                    log(`The NFC scanner is started.`);
+                } else {
+                    log(`Web NFC is not supported by this browser.`);
+                }
+            } catch (e) {
+                log(`Error:` + e.message);
+            }
+        }
+
+        document
+            .getElementById('nfcButton')
+            .addEventListener('click', handleClick);
+
+    </script>
+</head>
+<body>
+<h1>The NFC Test WebApp</h1>
+<div><span>Tap the button to start a scan:</span>
+    <button id="nfcButton">Read NFC Tag.</button>
+</div>
+<pre id="output"></pre>
+</body>
+</html>
